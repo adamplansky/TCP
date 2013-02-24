@@ -19,56 +19,30 @@ import java.util.regex.*;
 //TODO : KLIENT MUSI BYT STABILNI PROTI NEOCEKAVANYM VSTUPUM???
 public class Robot {
 
+    public static int cnt = 0;
+
     public static void main(String[] args) throws IOException {
-        if (args.length == 2) {
-            String textToserver;
-            Client c = new Client();
-            Board b = new Board(c);
-            try {
-                c.openConnection(args[0], Integer.parseInt(args[1]));
 
 
-                while (c.getSocket().isConnected()) {
-                    String actText = c.readNextLine();
-                    textToserver = b.getText(actText);
 
-                    if (textToserver.equals("end")) {
-                        break;
-                    }
-                    c.sendToServer(textToserver);
-                }
-            } catch (Exception e) {
-                System.out.println(e);
-            } finally {
-                try {
-                    c.closeConnection();
-                } catch (Exception e) {
+        ServerSocket serverSocket = null;
+        boolean listening = true;
 
-                    System.out.println(e);
-
-                }
-            }
-        } else if (args.length == 1) {
-            ServerSocket serverSocket = null;
-            boolean listening = true;
-
-            try {
-                serverSocket = new ServerSocket(Integer.parseInt(args[0]));
-            } catch (IOException e) {
-                System.err.println("Could not listen on port: " + args[0]);
-                System.exit(-1);
-            }
-            while (listening) {
-                Socket clientSocket = serverSocket.accept();
-
-                new Thread(new Server(clientSocket)).start();
-            }
-
-            serverSocket.close();
-
-        } else {
-            System.out.println("No parametrs");
+        try {
+            serverSocket = new ServerSocket(3500);
+        } catch (IOException e) {
+            System.err.println("Could not listen on port: " + 3500);
+            System.exit(-1);
         }
+        while (listening) {
+            Socket clientSocket = serverSocket.accept();
+            //if client is not responding for 60sec it disconnect it
+            clientSocket.setSoTimeout(60000);
+            new Thread(new Server(clientSocket)).start();
+        }
+
+        serverSocket.close();
+
 
     }
 }
@@ -139,6 +113,8 @@ class Server implements Runnable {
 
 
 
+        } catch (SocketTimeoutException e) {
+            System.out.println("client has not been responding for 60sec .. server has disconnect him!");
         } catch (IOException e) {
             System.out.println("server + run.catch - " + e);
         } finally {
